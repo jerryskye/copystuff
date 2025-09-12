@@ -30,12 +30,15 @@
         .input-group {
             margin-bottom: 20px;
         }
-        input[type="text"] {
+        textarea {
             padding: 10px;
             font-size: 16px;
             width: 250px;
+            height: 150px; /* Added height for multi-line input */
             border: 1px solid #ccc;
             border-radius: 5px;
+            font-family: monospace; /* Preserves whitespace */
+            white-space: pre; /* Preserves whitespace */
         }
         .button-group {
             display: flex;
@@ -70,7 +73,7 @@
     <div class="input-group">
         <label for="fragmentInput">Enter a URL fragment:</label>
         <br>
-        <input type="text" id="fragmentInput" placeholder="e.g., my-section-id">
+        <textarea id="fragmentInput" placeholder="e.g., hello world"></textarea>
     </div>
 
     <div class="button-group">
@@ -90,21 +93,30 @@
         messageDiv.style.color = color;
     }
 
-    // Function to get the hash and update the input field
+    // Function to get the hash, decode it, and update the input field
     function updateInputFromHash() {
         const hash = window.location.hash;
         if (hash) {
-            fragmentInput.value = hash.substring(1);
+            try {
+                const decodedText = decodeURIComponent(hash.substring(1));
+                // Replace encoded newlines and carriage returns with actual newlines
+                // This is a common workaround for fragmented URL behavior
+                fragmentInput.value = decodedText.replace(/%0A/g, '\n').replace(/%0D/g, '\r');
+            } catch (e) {
+                console.error("Failed to decode URL fragment:", e);
+                fragmentInput.value = hash.substring(1); 
+                displayMessage('⚠️ Malformed URL fragment. Displaying raw value.', 'red');
+            }
         } else {
             fragmentInput.value = '';
         }
-        displayMessage('', 'black'); // Clear message on hash change
     }
 
     function setHashFromInput() {
-        const textToSet = fragmentInput.value.trim();
+        const textToSet = fragmentInput.value; // Get value directly from textarea
         if (textToSet) {
-            window.location.hash = textToSet;
+            // Encode the string before setting it in the URL
+            window.location.hash = encodeURIComponent(textToSet);
             displayMessage('✅ URL fragment updated successfully!', 'green');
         } else {
             displayMessage('⚠️ Please enter text to set the URL fragment.', 'orange');
@@ -114,12 +126,13 @@
     async function copyHashToClipboard() {
         const hash = window.location.hash;
         if (hash) {
-            const textToCopy = hash.substring(1);
             try {
-                await navigator.clipboard.writeText(textToCopy);
+                // Decode the URL for the user
+                const decodedText = decodeURIComponent(hash.substring(1));
+                await navigator.clipboard.writeText(decodedText);
                 displayMessage('✅ Copied to clipboard successfully!', 'green');
             } catch (err) {
-                console.error('Failed to copy text: ', err);
+                console.error('Failed to copy or decode text: ', err);
                 displayMessage('❌ Failed to copy text. Please try again.', 'red');
             }
         } else {
@@ -127,11 +140,7 @@
         }
     }
 
-    // New Event Listener
-    // This will trigger the update whenever the URL fragment changes.
     window.addEventListener('hashchange', updateInputFromHash);
-
-    // Initial check on page load
     document.addEventListener('DOMContentLoaded', updateInputFromHash);
 </script>
 
