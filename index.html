@@ -29,16 +29,17 @@
         }
         .input-group {
             margin-bottom: 20px;
+            position: relative;
         }
         textarea {
             padding: 10px;
             font-size: 16px;
             width: 250px;
-            height: 150px; /* Added height for multi-line input */
+            height: 150px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            font-family: monospace; /* Preserves whitespace */
-            white-space: pre; /* Preserves whitespace */
+            font-family: monospace;
+            white-space: pre;
         }
         .button-group {
             display: flex;
@@ -58,6 +59,27 @@
         button:hover {
             background-color: #0056b3;
         }
+        #clearButton {
+            background-color: transparent;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            font-size: 1.2em;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        #clearButton:hover {
+            background-color: #f0f0f0;
+        }
         #message {
             margin-top: 15px;
             font-weight: bold;
@@ -74,6 +96,7 @@
         <label for="fragmentInput">Enter a URL fragment:</label>
         <br>
         <textarea id="fragmentInput" placeholder="e.g., hello world"></textarea>
+        <button id="clearButton" onclick="clearFragment()">🖌️</button>
     </div>
 
     <div class="button-group">
@@ -99,12 +122,10 @@
         if (hash) {
             try {
                 const decodedText = decodeURIComponent(hash.substring(1));
-                // Replace encoded newlines and carriage returns with actual newlines
-                // This is a common workaround for fragmented URL behavior
                 fragmentInput.value = decodedText.replace(/%0A/g, '\n').replace(/%0D/g, '\r');
             } catch (e) {
                 console.error("Failed to decode URL fragment:", e);
-                fragmentInput.value = hash.substring(1); 
+                fragmentInput.value = hash.substring(1);
                 displayMessage('⚠️ Malformed URL fragment. Displaying raw value.', 'red');
             }
         } else {
@@ -113,9 +134,8 @@
     }
 
     function setHashFromInput() {
-        const textToSet = fragmentInput.value; // Get value directly from textarea
+        const textToSet = fragmentInput.value;
         if (textToSet) {
-            // Encode the string before setting it in the URL
             window.location.hash = encodeURIComponent(textToSet);
             displayMessage('✅ URL fragment updated successfully!', 'green');
         } else {
@@ -123,14 +143,41 @@
         }
     }
 
+    // New function to clear the text field and URL fragment
+    function clearFragment() {
+        fragmentInput.value = '';
+        window.location.hash = ''; // Set the hash to an empty string to clear it
+        displayMessage('✅ Fragment cleared!', 'green');
+    }
+
+    // Fallback for non-secure contexts (e.g., HTTP or file://)
+    function fallbackCopy(text) {
+        const tempTextArea = document.createElement('textarea');
+        tempTextArea.value = text;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        try {
+            document.execCommand('copy');
+            displayMessage('✅ Copied to clipboard successfully! (Fallback method)', 'green');
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            displayMessage('❌ Failed to copy text. Please try again.', 'red');
+        }
+        document.body.removeChild(tempTextArea);
+    }
+
     async function copyHashToClipboard() {
         const hash = window.location.hash;
         if (hash) {
             try {
-                // Decode the URL for the user
                 const decodedText = decodeURIComponent(hash.substring(1));
-                await navigator.clipboard.writeText(decodedText);
-                displayMessage('✅ Copied to clipboard successfully!', 'green');
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(decodedText);
+                    displayMessage('✅ Copied to clipboard successfully!', 'green');
+                } else {
+                    fallbackCopy(decodedText);
+                }
             } catch (err) {
                 console.error('Failed to copy or decode text: ', err);
                 displayMessage('❌ Failed to copy text. Please try again.', 'red');
