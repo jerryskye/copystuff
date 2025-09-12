@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copy URL Fragment</title>
+    <title>URL Fragment Manager</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,16 +19,28 @@
         .container {
             text-align: center;
             background: #fff;
-            padding: 20px 40px;
+            padding: 30px 40px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
         h1 {
             color: #007BFF;
-            margin-bottom: 10px;
-        }
-        p {
             margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 250px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
         }
         button {
             padding: 10px 20px;
@@ -46,44 +58,81 @@
         #message {
             margin-top: 15px;
             font-weight: bold;
+            min-height: 20px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>URL Fragment Copier</h1>
-    <p>Click the button below to copy the text after the '#' in the URL.</p>
-    <button onclick="copyHashToClipboard()">Copy to Clipboard</button>
+    <h1>URL Fragment Manager</h1>
+
+    <div class="input-group">
+        <label for="fragmentInput">Enter a URL fragment:</label>
+        <br>
+        <input type="text" id="fragmentInput" placeholder="e.g., my-section-id">
+    </div>
+
+    <div class="button-group">
+        <button onclick="setHashFromInput()">Set URL Fragment</button>
+        <button onclick="copyHashToClipboard()">Copy Current Fragment</button>
+    </div>
+
     <div id="message"></div>
 </div>
 
 <script>
-    async function copyHashToClipboard() {
-        // Get the URL hash (the part after the #)
+    const messageDiv = document.getElementById('message');
+    const fragmentInput = document.getElementById('fragmentInput');
+
+    function displayMessage(text, color) {
+        messageDiv.textContent = text;
+        messageDiv.style.color = color;
+    }
+
+    // Function to get the hash and update the input field
+    function updateInputFromHash() {
         const hash = window.location.hash;
-
-        // Check if the hash exists and is not empty
         if (hash) {
-            // Remove the leading '#' character
-            const textToCopy = hash.substring(1);
-            const messageDiv = document.getElementById('message');
-
-            try {
-                // Use the Clipboard API to write the text
-                await navigator.clipboard.writeText(textToCopy);
-                messageDiv.textContent = '✅ Copied to clipboard successfully!';
-                messageDiv.style.color = 'green';
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-                messageDiv.textContent = '❌ Failed to copy text. Please try again.';
-                messageDiv.style.color = 'red';
-            }
+            fragmentInput.value = hash.substring(1);
         } else {
-            document.getElementById('message').textContent = '⚠️ No URL fragment (#) found to copy.';
-            document.getElementById('message').style.color = 'orange';
+            fragmentInput.value = '';
+        }
+        displayMessage('', 'black'); // Clear message on hash change
+    }
+
+    function setHashFromInput() {
+        const textToSet = fragmentInput.value.trim();
+        if (textToSet) {
+            window.location.hash = textToSet;
+            displayMessage('✅ URL fragment updated successfully!', 'green');
+        } else {
+            displayMessage('⚠️ Please enter text to set the URL fragment.', 'orange');
         }
     }
+
+    async function copyHashToClipboard() {
+        const hash = window.location.hash;
+        if (hash) {
+            const textToCopy = hash.substring(1);
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                displayMessage('✅ Copied to clipboard successfully!', 'green');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                displayMessage('❌ Failed to copy text. Please try again.', 'red');
+            }
+        } else {
+            displayMessage('⚠️ No URL fragment (#) found to copy.', 'orange');
+        }
+    }
+
+    // New Event Listener
+    // This will trigger the update whenever the URL fragment changes.
+    window.addEventListener('hashchange', updateInputFromHash);
+
+    // Initial check on page load
+    document.addEventListener('DOMContentLoaded', updateInputFromHash);
 </script>
 
 </body>
